@@ -1,0 +1,16 @@
+# SMART GROW - Gateway Dependencies
+# Python 3.11+
+
+# MQTT Client
+paho-mqtt>=2.0.0
+
+# SX1262 LoRa HAT Driver
+# Instalar desde: https://github.com/waveshare/SX126X-LoRa-HAT
+# pip install spidev RPi.GPIO
+
+# Utilities
+spidev>=3.6
+RPi.GPIO>=0.7.1
+
+# Para testing
+pytest>=7.4.0

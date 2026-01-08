@@ -1,0 +1,183 @@
+# SMART GROW - Docker Compose Stack
+# ===================================
+# Stack completo de servicios para el gateway agrícola
+#
+# Servicios incluidos:
+# - InfluxDB: Base de datos time-series
+# - Mosquitto: Broker MQTT
+# - FastAPI: API REST + ML
+# - Grafana: Dashboards
+# - Node-RED: Automatización
+# - Frontend: PWA Vue.js
+#
+# Uso:
+#   docker compose up -d
+#   docker compose logs -f
+#   docker compose down
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # BASE DE DATOS TIME-SERIES
+  # ==========================================================================
+  influxdb:
+    image: influxdb:2.7
+    container_name: smartgrow-influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=smartgrow2025
+      - DOCKER_INFLUXDB_INIT_ORG=smartgrow
+      - DOCKER_INFLUXDB_INIT_BUCKET=agricola
+      - DOCKER_INFLUXDB_INIT_RETENTION=90d
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_TOKEN:-smartgrow-secret-token}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - smartgrow-net
+
+  # ==========================================================================
+  # BROKER MQTT
+  # ==========================================================================
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: smartgrow-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ../config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - smartgrow-net
+
+  # ==========================================================================
+  # API REST + MACHINE LEARNING
+  # ==========================================================================
+  fastapi:
+    build: ../../backend
+    container_name: smartgrow-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      influxdb:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+    environment:
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=${INFLUX_TOKEN:-smartgrow-secret-token}
+      - INFLUX_ORG=smartgrow
+      - INFLUX_BUCKET=agricola
+      - MQTT_BROKER=mosquitto
+      - MQTT_PORT=1883
+    volumes:
+      - ../../ml-models/models:/app/ml_models:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - smartgrow-net
+
+  # ==========================================================================
+  # DASHBOARDS TÉCNICOS
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: smartgrow-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../config/grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=smartgrow2025
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    networks:
+      - smartgrow-net
+
+  # ==========================================================================
+  # AUTOMATIZACIÓN Y FLUJOS
+  # ==========================================================================
+  nodered:
+    image: nodered/node-red:latest
+    container_name: smartgrow-nodered
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    volumes:
+      - nodered_data:/data
+    environment:
+      - TZ=America/Argentina/Tucuman
+    depends_on:
+      - mosquitto
+      - influxdb
+    networks:
+      - smartgrow-net
+
+  # ==========================================================================
+  # FRONTEND PWA
+  # ==========================================================================
+  frontend:
+    build: ../../frontend
+    container_name: smartgrow-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      fastapi:
+        condition: service_healthy
+    networks:
+      - smartgrow-net
+
+# ==========================================================================
+# VOLÚMENES PERSISTENTES
+# ==========================================================================
+volumes:
+  influxdb_data:
+    name: smartgrow_influxdb_data
+  influxdb_config:
+    name: smartgrow_influxdb_config
+  mosquitto_data:
+    name: smartgrow_mosquitto_data
+  mosquitto_log:
+    name: smartgrow_mosquitto_log
+  grafana_data:
+    name: smartgrow_grafana_data
+  nodered_data:
+    name: smartgrow_nodered_data
+
+# ==========================================================================
+# RED INTERNA
+# ==========================================================================
+networks:
+  smartgrow-net:
+    name: smartgrow-network
+    driver: bridge
