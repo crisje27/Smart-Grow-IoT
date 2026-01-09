@@ -1,1 +1,1 @@
-# SMART GROW - Backend Services
+# SMART GROW - Services

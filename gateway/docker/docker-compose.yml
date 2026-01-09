@@ -1,26 +1,19 @@
-# SMART GROW - Docker Compose Stack
-# ===================================
-# Stack completo de servicios para el gateway agrícola
-#
-# Servicios incluidos:
-# - InfluxDB: Base de datos time-series
-# - Mosquitto: Broker MQTT
-# - FastAPI: API REST + ML
-# - Grafana: Dashboards
-# - Node-RED: Automatización
-# - Frontend: PWA Vue.js
+# ╔═══════════════════════════════════════════════════════════════════════════════╗
+# ║                    SMART GROW - Docker Compose Stack                          ║
+# ╚═══════════════════════════════════════════════════════════════════════════════╝
 #
 # Uso:
-#   docker compose up -d
-#   docker compose logs -f
-#   docker compose down
+#   docker compose up -d          # Iniciar todos los servicios
+#   docker compose ps             # Ver estado
+#   docker compose logs -f        # Ver logs
+#   docker compose down           # Detener
 
 version: '3.8'
 
 services:
-  # ==========================================================================
-  # BASE DE DATOS TIME-SERIES
-  # ==========================================================================
+  # ═══════════════════════════════════════════════════════════════════════════
+  # INFLUXDB - Base de datos time-series
+  # ═══════════════════════════════════════════════════════════════════════════
   influxdb:
     image: influxdb:2.7
     container_name: smartgrow-influxdb
@@ -37,7 +30,7 @@ services:
       - DOCKER_INFLUXDB_INIT_ORG=smartgrow
       - DOCKER_INFLUXDB_INIT_BUCKET=agricola
       - DOCKER_INFLUXDB_INIT_RETENTION=90d
-      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_TOKEN:-smartgrow-secret-token}
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_TOKEN:-smartgrow-token-change-me}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8086/ping"]
       interval: 30s
@@ -46,9 +39,9 @@ services:
     networks:
       - smartgrow-net
 
-  # ==========================================================================
-  # BROKER MQTT
-  # ==========================================================================
+  # ═══════════════════════════════════════════════════════════════════════════
+  # MOSQUITTO - Broker MQTT
+  # ═══════════════════════════════════════════════════════════════════════════
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: smartgrow-mosquitto
@@ -60,37 +53,32 @@ services:
       - ../config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
-    healthcheck:
-      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     networks:
       - smartgrow-net
 
-  # ==========================================================================
-  # API REST + MACHINE LEARNING
-  # ==========================================================================
+  # ═══════════════════════════════════════════════════════════════════════════
+  # FASTAPI - Backend REST API + Machine Learning
+  # ═══════════════════════════════════════════════════════════════════════════
   fastapi:
-    build: ../../backend
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
     container_name: smartgrow-api
     restart: unless-stopped
     ports:
       - "8000:8000"
-    depends_on:
-      influxdb:
-        condition: service_healthy
-      mosquitto:
-        condition: service_healthy
+    volumes:
+      - ../../ml-models/models:/app/ml_models:ro
     environment:
       - INFLUX_URL=http://influxdb:8086
-      - INFLUX_TOKEN=${INFLUX_TOKEN:-smartgrow-secret-token}
+      - INFLUX_TOKEN=${INFLUX_TOKEN:-smartgrow-token-change-me}
       - INFLUX_ORG=smartgrow
       - INFLUX_BUCKET=agricola
       - MQTT_BROKER=mosquitto
       - MQTT_PORT=1883
-    volumes:
-      - ../../ml-models/models:/app/ml_models:ro
+    depends_on:
+      - influxdb
+      - mosquitto
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -99,9 +87,9 @@ services:
     networks:
       - smartgrow-net
 
-  # ==========================================================================
-  # DASHBOARDS TÉCNICOS
-  # ==========================================================================
+  # ═══════════════════════════════════════════════════════════════════════════
+  # GRAFANA - Dashboards técnicos
+  # ═══════════════════════════════════════════════════════════════════════════
   grafana:
     image: grafana/grafana:latest
     container_name: smartgrow-grafana
@@ -116,16 +104,14 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=smartgrow2025
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
     depends_on:
-      influxdb:
-        condition: service_healthy
+      - influxdb
     networks:
       - smartgrow-net
 
-  # ==========================================================================
-  # AUTOMATIZACIÓN Y FLUJOS
-  # ==========================================================================
+  # ═══════════════════════════════════════════════════════════════════════════
+  # NODE-RED - Automatización y flujos
+  # ═══════════════════════════════════════════════════════════════════════════
   nodered:
     image: nodered/node-red:latest
     container_name: smartgrow-nodered
@@ -142,24 +128,25 @@ services:
     networks:
       - smartgrow-net
 
-  # ==========================================================================
-  # FRONTEND PWA
-  # ==========================================================================
+  # ═══════════════════════════════════════════════════════════════════════════
+  # FRONTEND - PWA Vue.js
+  # ═══════════════════════════════════════════════════════════════════════════
   frontend:
-    build: ../../frontend
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
     container_name: smartgrow-frontend
     restart: unless-stopped
     ports:
       - "80:80"
     depends_on:
-      fastapi:
-        condition: service_healthy
+      - fastapi
     networks:
       - smartgrow-net
 
-# ==========================================================================
+# ═══════════════════════════════════════════════════════════════════════════
 # VOLÚMENES PERSISTENTES
-# ==========================================================================
+# ═══════════════════════════════════════════════════════════════════════════
 volumes:
   influxdb_data:
     name: smartgrow_influxdb_data
@@ -174,9 +161,9 @@ volumes:
   nodered_data:
     name: smartgrow_nodered_data
 
-# ==========================================================================
+# ═══════════════════════════════════════════════════════════════════════════
 # RED INTERNA
-# ==========================================================================
+# ═══════════════════════════════════════════════════════════════════════════
 networks:
   smartgrow-net:
     name: smartgrow-network
