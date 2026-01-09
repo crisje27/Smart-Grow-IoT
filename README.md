@@ -332,7 +332,7 @@ journalctl -u smartgrow-lora -f
 Este proyecto fue desarrollado como **Proyecto Final de Carrera** para la obtención del título de **Ingeniero Electrónico** en la **Universidad Tecnológica Nacional - Facultad Regional Tucumán (UTN-FRT)**.
 
 **Autor:** Cristian Rodríguez  
-**Director:** [Nombre del Director]  
+**Director:** Ing. Ruben Egea  
 **Año:** 2025
 
 ### Citar este trabajo
