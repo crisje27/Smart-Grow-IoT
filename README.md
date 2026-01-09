@@ -365,8 +365,8 @@ Este proyecto está licenciado bajo la **Licencia MIT** - ver el archivo [LICENS
 ## 📧 Contacto
 
 - **GitHub:** [@crisje27](https://github.com/crisje27)
-- **LinkedIn:** [Cristian Rodríguez](https://linkedin.com/in/tu-perfil)
-- **Email:** [tu-email@example.com]
+- **LinkedIn:** https://www.linkedin.com/in/cristianfernando27
+- **Email:** fernando270397@gmail.com
 
 ---
 
