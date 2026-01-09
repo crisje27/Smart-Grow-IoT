@@ -371,7 +371,7 @@ Este proyecto está licenciado bajo la **Licencia MIT** - ver el archivo [LICENS
 ---
 
 <p align="center">
-  <b>Hecho con ❤️ en Tucumán, Argentina 🇦🇷</b>
+  <b>Hecho en Tucumán, Argentina 🇦🇷</b>
   <br>
   <i>Democratizando la agricultura de precisión</i>
 </p>
