@@ -286,9 +286,9 @@ journalctl -u smartgrow-lora -f
 
 | Métrica | Valor |
 |---------|-------|
-| Accuracy | 99% |
-| Precision | 98% |
-| Recall | 99% |
+| Accuracy | 87% |
+| Precision | 86% |
+| Recall | 85% |
 
 **Condiciones detectadas:**
 - Humedad >85% sostenida >6 horas
