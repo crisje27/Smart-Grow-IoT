@@ -13,7 +13,7 @@
 
 ## 📋 Descripción
 
-**SMART GROW** es un sistema IoT de bajo costo para monitoreo agrícola y predicción de eventos climáticos adversos mediante Machine Learning. Diseñado específicamente para pequeños y medianos productores de la región NOA de Argentina, donde las heladas causan pérdidas estimadas en USD 25 millones anuales solo en el sector citrícola de Tucumán.
+**SMART GROW** es un sistema IoT de bajo costo para monitoreo agrícola y predicción de eventos climáticos adversos mediante Machine Learning. Diseñado específicamente para pequeños y medianos productores de la región NOA de Argentina.
 
 ### 🎯 Problema que Resuelve
 
